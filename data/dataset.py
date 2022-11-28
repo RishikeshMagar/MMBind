@@ -6,8 +6,9 @@ from transformers import BertTokenizer
 from torch.utils.data import Dataset
 
 class ProtDataset(Dataset):
-    def __init__(self, label_dir, ligand_dir, seq_dir, max_length=1024):
+    def __init__(self, label_dir, ligand_dir='ligand_rep', seq_dir='prot_seq.npy', max_length=1024):
         max_seq_length = max_length - 224
+        self.ligand_dir = ligand_dir
         """
         [CLS] Sequence+padding (max_seq_length-2) [SEP] Ligand+padding (224)
         """
@@ -20,7 +21,7 @@ class ProtDataset(Dataset):
         self.labels = {self.labels[i, 0].split('_')[0]: self.labels[i, 1] for i in range(len(self.labels))}
 
         self.tokenizer = BertTokenizer.from_pretrained("Rostlab/prot_bert", do_lower_case=False)
-        raw_seq = np.load('prot_seq.npy', allow_pickle=True)
+        raw_seq = np.load(seq_dir, allow_pickle=True)
         self.prot_seq = []
         for i in range(len(raw_seq)):
             seq = raw_seq[i, 1].replace(' ', '')
@@ -52,7 +53,7 @@ class ProtDataset(Dataset):
     """
     def __getitem__(self, idx):
         fname = self.prot_seq[idx, 0]
-        ligand_path = os.path.join('ligand_rep', fname+'_ligand.pt')
+        ligand_path = os.path.join(self.ligand_dir, fname+'_ligand.pt')
         ligand_rep = torch.load(ligand_path)
         dim = ligand_rep.size() # dim = [n_atoms, 256]
         n_pad = 224-dim[0]
