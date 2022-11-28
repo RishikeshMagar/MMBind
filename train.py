@@ -94,7 +94,7 @@ for e in range(n_epochs):
             labels.append(label.cpu().numpy())
         preds = np.concatenate(preds)
         labels = np.concatenate(labels)
-        rmse = mean_squared_error(labels, preds, squared=True)
+        rmse = mean_squared_error(labels, preds, squared=False)
         print(f'Epoch: {e}, Valid Loss: {valid_loss/len(valid_loader):.4f}, RMSE: {rmse:.4f}')
         if valid_loss < best_valid_loss:
             best_valid_loss = valid_loss
