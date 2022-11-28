@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import numpy as np
 import torch
+import torch.nn.functional as F
 from transformers import BertTokenizer
 from torch.utils.data import Dataset
 
@@ -30,10 +31,10 @@ class ProtDataset(Dataset):
                     raw_seq[i, 1], add_special_tokens=True, 
                     padding='max_length', max_length=max_seq_length
                 )
-                tokens[tokens.index(self.spe_toknes['SEP'])] = 0
+                tokens[tokens.index(self.sep_tokens['SEP'])] = 0
                 tokens[-1] = self.sep_tokens['SEP']
                 self.prot_seq.append([raw_seq[i, 0], tokens])
-        self.prot_seq = np.array(self.prot_seq)
+        self.prot_seq = np.array(self.prot_seq, dtype=object)
 
     
     """
@@ -42,7 +43,7 @@ class ProtDataset(Dataset):
     """
     def __len__(self):
         return len(self.prot_seq)
-   
+
     """
     return of __getitem__:
 
@@ -56,6 +57,10 @@ class ProtDataset(Dataset):
         ligand_path = os.path.join(self.ligand_dir, fname+'_ligand.pt')
         ligand_rep = torch.load(ligand_path)
         dim = ligand_rep.size() # dim = [n_atoms, 256]
-        n_pad = 224-dim[0]
+        n_pad = 224 - dim[0]
+        ligand_pad = torch.zeros(n_pad, 256)
+        ligand_rep = torch.cat((ligand_rep, ligand_pad), dim=0)
 
-        return self.prot_seq[idx, 1], ligand_rep, np.zeros(shape=n_pad), self.labels[fname]
+        pro_seq = torch.tensor(self.prot_seq[idx, 1], dtype=torch.long)
+        label = torch.tensor(self.labels[fname], dtype=torch.float)
+        return pro_seq, ligand_rep, label
