@@ -6,23 +6,26 @@ from torch import optim
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torch.utils.data.sampler import SubsetRandomSampler
-from  sklearn.metrics import mean_squared_error
+from  sklearn.metrics import mean_squared_error, mean_absolute_error
+from scipy.stats import pearsonr
 
 from data.dataset import ProtDataset
 from model.transformer import ProLigBEiT
 from lr_sched import adjust_learning_rate
 
 
+seed = 0
+
 device = 'cuda:0'
-n_epochs = 50
+n_epochs = 100
 valid_size = 0.2
 batch_size = 8
 num_workers = 4
 
 lr = 4e-4
 min_lr = 1e-7
-warmup_epochs = 5
-patience_epochs = 5
+warmup_epochs = 10
+patience_epochs = 0
 weight_decay = 1e-5
 
 d_model = 256
@@ -37,10 +40,11 @@ dataset = ProtDataset(
     seq_dir='data/prot_seq.npy'
 )
 
-
 num_data = len(dataset)
 indices = list(range(num_data))
-np.random.shuffle(indices)
+# np.random.shuffle(indices)
+random_state = np.random.RandomState(seed=seed)
+random_state.shuffle(indices)
 
 split = int(np.floor(valid_size * num_data))
 valid_idx, train_idx = indices[:split], indices[split:]
@@ -95,7 +99,9 @@ for e in range(n_epochs):
         preds = np.concatenate(preds)
         labels = np.concatenate(labels)
         rmse = mean_squared_error(labels, preds, squared=False)
-        print(f'Epoch: {e}, Valid Loss: {valid_loss/len(valid_loader):.4f}, RMSE: {rmse:.4f}')
+        mae = mean_absolute_error(labels, preds)
+        pearson = pearsonr(labels, preds)[0][0]
+        print(f'Epoch: {e}, Valid Loss: {valid_loss/len(valid_loader):.4f}, RMSE: {rmse:.4f}, MAE: {mae:.4f}, R: {pearson:.4f}')
         if valid_loss < best_valid_loss:
             best_valid_loss = valid_loss
             torch.save(model.state_dict(), os.path.join(save_dir, 'model.pt'))
