@@ -7,7 +7,8 @@ from transformers import BertTokenizer
 from torch.utils.data import Dataset
 
 class ProtDataset(Dataset):
-    def __init__(self, label_dir, ligand_dir='ligand_rep', seq_dir='prot_seq.npy', max_length=1024):
+    def __init__(self, label_dir, ligand_dir='ligand_rep', seq_dir='pocket_seq.npy', max_length=485):
+        # Max pocket seq length: 259, max # atoms in ligand: 224, max_length=259+224+2=485
         max_seq_length = max_length - 224
         self.ligand_dir = ligand_dir
         """
@@ -47,7 +48,7 @@ class ProtDataset(Dataset):
     """
     return of __getitem__:
 
-    1. sequence with padding (numpy array, shape = [800]),
+    1. sequence with padding (numpy array, shape = [259+2]),
     2. equivariant node feature of ligand (torch Tensor, shape=[n_atoms, 256]),
     3. padding for the ligand node features (numpy array, shape = [224-n_atoms]),
     4. label of binding affinity
