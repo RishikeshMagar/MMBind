@@ -7,10 +7,20 @@ from transformers import BertTokenizer
 from torch.utils.data import Dataset
 
 class ProtDataset(Dataset):
-    def __init__(self, label_dir, ligand_dir='ligand_rep', seq_dir='pocket_seq.npy', max_length=485):
+    def __init__(
+        self, label_dir='label', ligand_dir='ligand_rep', 
+        seq_dir='sequence', max_length=485, train=True
+        ):
         # Max pocket seq length: 259, max # atoms in ligand: 224, max_length=259+224+2=485
         max_seq_length = max_length - 224
-        self.ligand_dir = ligand_dir
+        if train:
+            self.ligand_dir = ligand_dir+'/other'
+            seq_dir = seq_dir+'/other_pocket_seq.npy'
+            label_dir = label_dir+'/other.csv'
+        else:
+            self.ligand_dir = ligand_dir+'/refined'
+            seq_dir = seq_dir+'/refined_pocket_seq.npy'
+            label_dir = label_dir+'/refined.csv'
         """
         [CLS] Sequence+padding (max_seq_length-2) [SEP] Ligand+padding (224)
         """
