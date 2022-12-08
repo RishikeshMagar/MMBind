@@ -152,6 +152,11 @@ class EncoderLayer(nn.Module):
         self.norm1 = nn.LayerNorm(d_model)
         self.dropout1 = nn.Dropout(p=drop_prob)
 
+        # self.ffn = nn.Sequential(
+        #     nn.Linear(d_model, expansion_factor*d_model),
+        #     nn.ReLU(),
+        #     nn.Linear(expansion_factor*d_model, d_model)
+        # )
         self.ffn_pro = nn.Sequential(
             nn.Linear(d_model, expansion_factor*d_model),
             nn.ReLU(),
@@ -185,9 +190,6 @@ class EncoderLayer(nn.Module):
         # x = self.ffn(x)
         x_pro = self.ffn_pro(x[:, self.pro_mask])
         x_lig = self.ffn_lig(x[:, self.lig_mask])
-        # print('FFN dim:', x.shape, x_pro.shape, x_lig.shape)
-        # x_complex = self.ffn_complex(x[self.complex_mask])
-        # x = torch.cat([x_pro, x_lig, x_complex], dim=1)
         x = torch.cat([x_pro, x_lig], dim=1)
 
         # 4. add and norm
@@ -204,6 +206,8 @@ class ProLigBEiT(nn.Module):
         super().__init__()
         self.pos_emb = PositionalEncoding(d_model=d_model, max_len=pro_len, device=device)
         self.tok_emb = nn.Embedding(num_embeddings=enc_voc_size, embedding_dim=d_model)
+        self.pro_modality_emb = nn.Embedding(num_embeddings=2, embedding_dim=d_model)
+        self.lig_modality_emb = nn.Embedding(num_embeddings=2, embedding_dim=d_model)
 
         self.max_len = pro_len + lig_len
         pro_mask = torch.zeros(self.max_len, dtype=torch.bool)
@@ -231,8 +235,14 @@ class ProLigBEiT(nn.Module):
         )
 
     def forward(self, pro, lig, src_mask=None):
-        x = self.tok_emb(pro) + self.pos_emb(pro)
-        x = torch.cat([x, lig], dim=1)
+        pro = self.tok_emb(pro) + self.pos_emb(pro)
+
+        # pro_mod = torch.zeros(pro.size(0), pro.size(1), dtype=torch.long).to(pro.device)
+        # lig_mod = torch.ones(lig.size(0), lig.size(1), dtype=torch.long).to(pro.device)
+        # pro = pro + self.pro_modality_emb(pro_mod)
+        # lig = lig + self.lig_modality_emb(lig_mod)
+
+        x = torch.cat([pro, lig], dim=1)
 
         for layer in self.layers:
             x = layer(x, src_mask)

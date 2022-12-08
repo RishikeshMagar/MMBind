@@ -74,4 +74,4 @@ class ProtDataset(Dataset):
 
         pro_seq = torch.tensor(self.prot_seq[idx, 1], dtype=torch.long)
         label = torch.tensor(self.labels[fname], dtype=torch.float)
-        return pro_seq, ligand_rep, label
+        return fname, pro_seq, ligand_rep, label
